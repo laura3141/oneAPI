@@ -1,0 +1,12 @@
+***** Create a project dir *****
+
+mkdir sampleCmake
+cd sampleCmake
+vi main.cpp
+
+***** Execution ****
+
+mkdir build && cd build
+cmake ../ look for CMakeList.txt file 
+make compile using the instructions
+./hello

@@ -1,0 +1,3 @@
+/home/laura/Documentos/Faculdade/IC-OneApi/Codigo/sampleCmake/build/CMakeFiles/hello.dir
+/home/laura/Documentos/Faculdade/IC-OneApi/Codigo/sampleCmake/build/CMakeFiles/edit_cache.dir
+/home/laura/Documentos/Faculdade/IC-OneApi/Codigo/sampleCmake/build/CMakeFiles/rebuild_cache.dir

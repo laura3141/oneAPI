@@ -1,0 +1,25 @@
+Computação heterogênea = aplicações projetadas para ter sua execução compartilhada entre diferentes arquiteturas
+
+host(cpu) - tarefas pouco paralelizáveis 
+aceleradores- tarefas altamente paralelizáveis 
+
+Processador single core: apenas um núcleo de processamento físico em um chip de processador. Isso significa que ele só pode executar uma tarefa ou thread de cada vez.
+
+Processador multi core: possui dois ou mais núcleos de processamento físicos integrados em um único chip de processador. Cada núcleo é capaz de executar tarefas independentes, o que permite ao processador realizar múltiplas tarefas simultaneamente.
+
+OpenCL: estrutura baseada em c para programação paralela em baixo nível que será executada em diferentes dispositivos
+
+SYCL: camada de abstração de nível mais alto construída sobre o OpenCL, oferecendo uma experiência de programação mais familiar e amigável para desenvolvedores C++
+
+
+
+Hierarquia de memória: estrutura organizacional de diferentes tipos e níveis de memória em um sistema de computação, que varia em termos de capacidade, velocidade, custo por byte e Proximidade ao processador. Esta estrutura é projetada para otimizar o desempenho do sistema
+
+Localidade espacial: tendencia em acessar dados próximos a outros dados que foram recentemente acessados;
+Localidade temporal: tendencia em acessar os mesmos dados em um curto período de tempo
+
+
+
+
+
+
