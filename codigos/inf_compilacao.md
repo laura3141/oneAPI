@@ -2,19 +2,19 @@
 # Compilação 
 
 
-	## Compilação Padrão
+## Compilação Padrão
 
-	icpx -fsycl addv.dp.cpp
+icpx -fsycl addv.dp.cpp
 
-        ## Compilação para gpu nvidia *
+## Compilação para gpu nvidia *
 
-                icpx -fsycl -fsycl-targets=nvptx64-nvidia-cuda simple-sycl-app.cpp -o simple-sycl-app 
-                
-        ## Compilaçao para multiplos hardwares *
+	icpx -fsycl -fsycl-targets=nvptx64-nvidia-cuda simple-sycl-app.cpp -o simple-sycl-app 
+	
+## Compilaçao para multiplos hardwares *
 
-                icpx -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 \
-                -Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_80 
-                -o test test.cpp
+	icpx -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 \
+	-Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_80 
+	-o test test.cpp
 
 ## Links úteis
 
