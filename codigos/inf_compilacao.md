@@ -6,17 +6,17 @@
 
 icpx -fsycl addv.dp.cpp
 
-## Compilação para gpu nvidia *
+## Compilação para gpu nvidia 
 
 	icpx -fsycl -fsycl-targets=nvptx64-nvidia-cuda simple-sycl-app.cpp -o simple-sycl-app 
 	
-## Compilaçao para multiplos hardwares *
+## Compilaçao para multiplos hardwares 
 
 	icpx -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 \
 	-Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_80 
 	-o test test.cpp
 
-## Links úteis
+### Links úteis
 
 https://registry.khronos.org/SYCL/specs/sycl-2020/html/sycl-2020.html#subsubsec:nd-range-class // documentaçao sycl
 
