@@ -1,0 +1,24 @@
+# Ignorar arquivos de objetos e executáveis
+*.o
+*.a
+*.so
+*.exe
+*.dll
+*.out
+*.class
+
+# Ignorar binários específicos de linguagens de programação
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar arquivos de diretórios comuns de build
+/build/
+/bin/
+/obj/
+/dist/
+
+# Ignorar IDEs e editores específicos (opcional)
+.vscode/
+.idea/
+

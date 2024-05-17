@@ -4,9 +4,9 @@
 using namespace cl::sycl; 
 
 int main() {
-      gpu_selector selector; // cria um objeto gpu_selector, que é um seletor de dispositivo para escolher uma GPU como o dispositivo de computação
-      
-     //default_selector selector; 
+       gpu_selector selector; // cria um objeto gpu_selector, que é um seletor de dispositivo para escolher uma GPU como o dispositivo de computação
+      //cpu_selector selector;
+      //default_selector selector; 
      //host_selector selector; 
 
     queue q(selector); // Cria uma fila de dispositivo usando o seletor fornecido

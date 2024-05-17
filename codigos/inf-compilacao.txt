@@ -1,4 +1,7 @@
 
+
+**** Compilação padrão *****
+
 icpx -fsycl addv.dp.cpp
 
 
@@ -32,6 +35,6 @@ O plug-in adiciona um back-end CUDA® ao DPC++
                 -o test: Esta opção especifica o nome do arquivo de saída do programa compilado, que neste caso será chamado de test.
                 test.cpp: Este é o arquivo de código fonte C++ que será compilado
 
-***** Documentation SYCL *****
+***** Documentação SYCL *****
 
 https://registry.khronos.org/SYCL/specs/sycl-2020/html/sycl-2020.html#subsubsec:nd-range-class
