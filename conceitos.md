@@ -1,8 +1,8 @@
-# Conceitos de Computação
+# Conceitos 
 
 ## Computação Heterogênea
 
-Aplicações projetadas para ter sua execução compartilhada entre diferentes arquiteturas:
+Aplicações projetadas para ter sua execução compartilhada entre diferentes arquiteturas
 
 - **Host (CPU)**: Responsável por tarefas pouco paralelizáveis.
 - **Aceleradores**: Responsáveis por tarefas altamente paralelizáveis.
