@@ -4,7 +4,7 @@
 
 ## Compilação Padrão
 
-icpx -fsycl addv.dp.cpp
+icpx -fsycl main.cpp
 
 ## Compilação para gpu nvidia 
 
