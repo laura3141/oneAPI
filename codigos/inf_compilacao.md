@@ -14,7 +14,7 @@ icpx -fsycl addv.dp.cpp
 
 	icpx -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 \
 	-Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_80 
-	-o test test.cpp
+	-o a main.cpp
 
 ### Links úteis
 
