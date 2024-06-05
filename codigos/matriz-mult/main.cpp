@@ -1,48 +1,71 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <CL/sycl.hpp>
 #include <iostream>
+#include <cstdlib> 
+#include <ctime>   
 
-void multiplica(int a[200][300], int b[300][200], int result[200][200]) {
-    for(int i = 0; i < 200; i++) {
-        for(int k = 0; k < 200; k++) {
-            int soma = 0;
-            for(int j = 0; j < 300; j++) {
-                soma += a[i][j] * b[j][k];
-            }
-            result[i][k] = soma;
-        }
-    }
-}
+using namespace std;
+using namespace cl::sycl;
+
+constexpr size_t nlin = 5000;  
+constexpr size_t ncol = 5000; 
+constexpr size_t nres = 5000;  
 
 int main() {
-    int a[200][300];
-    int b[300][200];
-    int result[200][200] = {0};
 
-    // Initialize matrix 'a'
-    for(int i = 0; i < 200; i++) {
-        for(int j = 0; j < 300; j++) {
-            a[i][j] = rand() % 10; // Using % 10 for smaller numbers
+    //matrizes
+    auto r1 = range<2>(nlin, ncol);   
+    auto r2 = range<2>(ncol, nres);   
+    auto rf = range<2>(nlin, nres);  
+
+    buffer<int, 2> matriz1{r1}, matriz2{r2}, matrizF{rf};
+    cpu_selector selector;
+    queue q(selector);
+
+    // Inicializaçao da 1 matriz
+    q.submit([&](handler& h) {
+        accessor A(matriz1, h, write_only);
+
+        h.parallel_for(r1, [=](id<2> index) {
+            A[index] = index[0]%100; 
+        });
+    }).wait();
+
+    // Inicializaçao da 2
+    q.submit([&](handler& h) {
+        accessor B(matriz2, h, write_only);
+
+        h.parallel_for(r2, [=](id<2> index) {
+            B[index] =index[1]%100; 
+        });
+    }).wait();
+
+    // Multiplicaçao 
+    q.submit([&](handler& h) {
+        accessor A(matriz1, h, read_only);
+        accessor B(matriz2, h, read_only);
+        accessor C(matrizF, h, write_only);
+
+        h.parallel_for(rf, [=](id<2> index) {
+            int linha = index[0];  //valor de i
+            int coluna = index[1]; //valor de j
+            int soma = 0;
+
+            for (int k = 0; k < ncol; k++) {
+                soma += A[linha][k] * B[k][coluna];
+            }
+
+            C[index] = soma;
+        });
+    }).wait();
+
+    // Print da matriz final 
+    host_accessor aux(matrizF, read_only);
+    
+    for (int i = 0; i < nlin; i++) {
+        for (int j = 0; j < nres; j++) {
+            std::cout << aux[i][j] << " ";
         }
-    }
-
-    // Initialize matrix 'b'
-    for(int i = 0; i < 300; i++) {
-        for(int j = 0; j < 200; j++) {
-            b[i][j] = rand() % 10; // Using % 10 for smaller numbers
-        }
-    }
-
-    // Perform matrix multiplication
-    multiplica(a, b, result);
-
-    // Print the result matrix
-    printf("Result matrix:\n");
-    for(int i = 0; i < 200; i++) {
-        for(int j = 0; j < 200; j++) {
-            printf("%d ", result[i][j]);
-        }
-        printf("\n");
+        std::cout << std::endl;
     }
 
     return 0;
