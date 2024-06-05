@@ -3,6 +3,7 @@
 
 using namespace cl::sycl;
 using namespace std;
+
 int main(){
 
     // tamanho do espaço de iteraçao
@@ -23,7 +24,7 @@ int main(){
         h.parallel_for(range<1>(N), [=](auto i){
             A[i]=i;
             B[i]=i;
-            C[i] = A[i]  B[i];
+            C[i] = A[i] + B[i];
         });
     });
     host_accessor aux(c,read_only);
