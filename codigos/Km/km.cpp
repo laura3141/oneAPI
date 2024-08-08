@@ -3,6 +3,9 @@
 #include <random>
 #include <cmath>
 
+#include <fstream>
+#include <string>
+
 using namespace sycl;
 using namespace std;
 
@@ -50,10 +53,12 @@ void ZerarMatrix(float **matrix, int rows, int cols) {
     }
 }
 
-void CentrMK( int ncent, int atributos, float **centros){
+
+void CentrMK( int ncent, int atributos, int nista, float **centros, float **instancias){
     //cpu_selector sel;
     //gpu_selector sel;
     //queue qcmk(sel);
+    int random;
 
     for (int i = 0; i < ncent; i++)
     {
@@ -64,14 +69,81 @@ void CentrMK( int ncent, int atributos, float **centros){
             });
         });
         qcmk.wait();*/
-        
+        random = rand()%nista -1;
+
         for (int j = 0; j < atributos; j++)
         {
-            centros[i][j] = rand()%100;
+            centros[i][j] = instancias[random][j];
         }
         
     }
     //return centros;
+}
+
+bool AtrEnt(int nista, int atributos, float **instancias){
+    std::ifstream arquivo("./IRIS.csv"); // Abra o arquivo para leitura
+    std::string valorString = "";
+    int contAtrb = 0;
+    int indexInsta = 0;
+    int j = 0;
+
+    if (!arquivo) { // Verifique se o arquivo foi aberto com sucesso
+        std::cerr << "Não foi possível abrir o arquivo." << std::endl;
+        return false;
+    }
+
+    std::string linha;
+    std::getline(arquivo, linha);
+    while (std::getline(arquivo, linha)) { // Leia linha por linha
+
+        j = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            while (linha[j] != ',')
+            {
+                valorString += linha[j];
+                j++;
+            }
+            j++;
+            instancias[indexInsta][i] = std::stof(valorString);
+            valorString = "";
+        }indexInsta++;
+    }
+/*
+    for (int  i = 0; i < nista; i++)
+    {
+        for (int j = 0; j < atributos; j++)
+        {
+            cout << "instancia: " << i << "-" << j << " = " << instancias[i][j] << "\n";
+        }
+        
+    }*/
+    
+
+    arquivo.close();
+    return true;
+}
+
+void Saida(int nista, float* indexProximidade){
+    string nomeArquivo = "./IRIS_out.txt";
+    ofstream arquivo(nomeArquivo);
+    string texto = "";
+    
+    // Verifica se o arquivo foi aberto com sucesso
+    if (!arquivo) {
+        cerr << "Não foi possível abrir o arquivo para escrita." << "\n";
+    }else{
+        for (int i = 0; i < nista; i++)// 
+        {
+            texto += " [" + to_string(i) + "]= " + to_string(static_cast<int>(indexProximidade[i])) + "\n";
+            //cout << " " + to_string(i) + "_" + to_string(indexProximidade[i]) + "\n";
+        }
+        
+        // Escreve o texto no arquivo
+        arquivo << texto;
+        arquivo.close();
+        cout << "Dados gravados com sucesso em " << nomeArquivo << "\n";
+    }
 }
 
 void AtrMK( int nista, int atributos, float **instancias){
@@ -109,19 +181,18 @@ float elev(float a, float b){
 }
 
 
-// ### FERRAMENTAS PARA USO ^ ###
-// ###    --- CODIGO ---    v ###
+// ### FERRAMENTAS PARA USO ^ #########################################################################################################
+// ###    --- CODIGO ---    v #########################################################################################################
 
 
-void Distancia_Euclidiana(float** instancias, int nista, int atributos, float** centros, int ncent, float** distanciados){
-    float aux;
+void Distancia_Euclidiana(float** instancias, int nista, int atributos, float** centros, int ncent, float** distanciados){ // Manhattan
+    //gpu_selector selD;
+    //queue q(selD);
+
+    //float *aux = malloc_shared<float>(1, q);
+    //aux[0] = 1;
     float soma;
-/*
-    gpu_selector selD;
-    queue qcmk(selD);*/
-
-    
-    
+    //float *somaV = malloc_shared<float>(atributos, q);
 
     for (int i = 0; i < ncent; i++)
     {
@@ -130,22 +201,20 @@ void Distancia_Euclidiana(float** instancias, int nista, int atributos, float** 
             soma = 0;
             for (int k = 0; k < atributos; k++)
             {
-                
-                aux = instancias[j][k] - centros[i][k];
-                soma = soma + elev(aux, 2);
-                
+                soma = soma + elev(instancias[j][k] - centros[i][k], 2);
             }
-            aux = sqrt(soma);
-            distanciados[i][j] = aux;
+            distanciados[i][j] = sqrt(soma);
         }
         
-    }/*
-        ker.parallel_for(range<1>(atributos), [=](auto j) {
-            centros[i][j] = rand()%100;
-        });*/
+    }
 
-
-    //qcmk.wait(); ///Fim do Kernel
+    cout << ": " << distanciados[0][0] << " " << distanciados[1][0] <<  " " << distanciados[2][0] <<  " " << distanciados[3][0] << "\n";
+    cout << ": " << distanciados[0][1] << " " << distanciados[1][1] <<  " " << distanciados[2][1] <<  " " << distanciados[3][1] << "\n";
+    cout << ": " << distanciados[0][2] << " " << distanciados[1][2] <<  " " << distanciados[2][2] <<  " " << distanciados[3][2] << "\n";
+    cout << ": " << distanciados[0][3] << " " << distanciados[1][3] <<  " " << distanciados[2][3] <<  " " << distanciados[3][3] << "\n";
+    cout << ": " << distanciados[0][4] << " " << distanciados[1][4] <<  " " << distanciados[2][4] <<  " " << distanciados[3][4] << "\n";
+    cout << ": " << distanciados[0][5] << " " << distanciados[1][5] <<  " " << distanciados[2][5] <<  " " << distanciados[3][5] << "\n";
+    
 /*
     for (int i = 0; i < ncent; i++)
     {
@@ -154,13 +223,9 @@ void Distancia_Euclidiana(float** instancias, int nista, int atributos, float** 
             soma = 0;
             for (int k = 0; k < atributos; k++)
             {
-                
-                aux = instancias[j][k] - centros[i][k];
-                soma = soma + elev(aux, 2);
-                
+                soma = soma + elev(instancias[j][k] - centros[i][k], 2);
             }
-            aux = sqrt(soma);
-            distanciados[i][j] = aux;
+            distanciados[i][j] = sqrt(soma);
         }
         
     }*/
@@ -189,6 +254,13 @@ void RemapeandoCentroid(float** instancias, int nista, int atributos, float** ce
     for (int i = 0; i < nista; ++i) {
         auxSoma[i] = new float[atributos];
     }
+/*
+    cout << "0= " << centros[0][0] << "\n";
+    cout << "0= " << centros[0][1] << "\n";
+    cout << "1= " << centros[1][0] << "\n";
+    cout << "1= " << centros[1][1] << "\n";
+    cout << "2= " << centros[2][0] << "\n";
+    cout << "2= " << centros[2][1] << "\n==\n";*/
 
     //float auxSoma[nista][atributos] = {};
     ZerarMatrix(auxSoma, nista, atributos);
@@ -198,19 +270,26 @@ void RemapeandoCentroid(float** instancias, int nista, int atributos, float** ce
         auxCont = 0;
         for (int j = 0; j < nista; j++)
         {
+            cout << j << " indexProximidade " << indexProximidade[j] << "  i " << i << "\n";
             if (indexProximidade[j] == i)
             {
                 for (int k = 0; k < atributos; k++)
                 {
+                    cout << " " << (auxSoma[i][k] + instancias[j][k]) << " = " << auxSoma[i][k] << " + " << instancias[j][k] << "\n";
                     auxSoma[i][k] = auxSoma[i][k] + instancias[j][k];
                 }
                 auxCont++;
             }
         }
-        for (int l = 0; l < atributos; l++)// Atualiza centroides
+        if (auxCont != 0)
         {
-            centros[i][l] = auxSoma[i][l] / auxCont;
+            for (int l = 0; l < atributos; l++)// Atualiza centroides
+            {
+                cout << " " << (auxSoma[i][l] / auxCont) << " = " << auxSoma[i][l] << " / " << auxCont << "\n";
+                centros[i][l] = auxSoma[i][l] / auxCont;
+            }
         }
+        
     }
     /*
     for (int i = 0; i < ncent; i++) // Atualiza centroides
@@ -220,10 +299,13 @@ void RemapeandoCentroid(float** instancias, int nista, int atributos, float** ce
             centros[i][j] = auxSoma[i][j];
         }
     }*/
+   /*
     cout << "0= " << centros[0][0] << "\n";
     cout << "0= " << centros[0][1] << "\n";
     cout << "1= " << centros[1][0] << "\n";
-    cout << "1= " << centros[1][1] << "\n==\n";
+    cout << "1= " << centros[1][1] << "\n";
+    cout << "2= " << centros[2][0] << "\n";
+    cout << "2= " << centros[2][1] << "\n==\n";*/
     
 }
 
@@ -238,9 +320,9 @@ int main(){
     cout << "\nQuantas centroides serão usados: \n";
     //cin >> ncent;
 
-    atributos = 2;// Para teste
-    nista = 4;
-    ncent = 2;
+    atributos = 4;// Para teste
+    nista = 150;
+    ncent = 4;
 
     //int instancias[nista][atributos];
     float **instancias = new float*[nista]; // matriz de instancias
@@ -268,54 +350,127 @@ int main(){
         centrosAnteriores[i] = new float[atributos];
     }
     
-    CentrMK(ncent, atributos, centros); // cria centros aleatorios
-    AtrMK(nista, atributos, instancias); // cria instancias aleatorias
+    
+    //AtrMK(nista, atributos, instancias); // cria instancias aleatorias
+    if (AtrEnt(nista, atributos, instancias)){
 
-    instancias[0][0] = 1;// Para teste
-    instancias[0][1] = 2;
+        CentrMK(ncent, atributos, nista, centros, instancias); // cria centros na posição de uma instacia aleatoria
+        // Usa volores de entrada para as instancias
 
-    instancias[1][0] = 2;
-    instancias[1][1] = 3;
+        /*
+        instancias[0][0] = 1;// Para teste
+        instancias[0][1] = 2;
 
-    instancias[2][0] = 3;
-    instancias[2][1] = 1;
+        instancias[1][0] = 1.5;
+        instancias[1][1] = 1.8;
 
-    instancias[3][0] = 3;
-    instancias[3][1] = 2;
+        instancias[2][0] = 5;
+        instancias[2][1] = 8;
 
-    centros[0][0] = 1;
-    centros[0][1] = 2;
+        instancias[3][0] = 8;
+        instancias[3][1] = 8;
 
-    centros[1][0] = 3;
-    centros[1][1] = 2;
+        instancias[4][0] = 1;
+        instancias[4][1] = 0.6;
 
-    float *indexProximidade = new float [nista];// array auxiliar que guarda a que centroide pertence alguma instancia
-    // pre operação - https://www.youtube.com/watch?v=njRYKzRKBPY
+        instancias[5][0] = 9;
+        instancias[5][1] = 11;
 
-    do
-    {
-        //ZerarMatrix(centrosAnteriores, ncent, atributos);
-        ClonarMatriz(centros, centrosAnteriores, ncent, atributos);
-        Distancia_Euclidiana(instancias, nista, atributos, centros, ncent, distanciados);
-        Agrupamento(distanciados, ncent, nista, indexProximidade);
-        RemapeandoCentroid(instancias, nista, atributos, centros, ncent, indexProximidade);
+        instancias[6][0] = 8;
+        instancias[6][1] = 2;
+
+        instancias[7][0] = 10;
+        instancias[7][1] = 2;
+
+        instancias[8][0] = 9;
+        instancias[8][1] = 3;*/
+
+        /*centros[0][0] = 5.1; Padrao Laura
+        centros[0][1] = 3.5;
+        centros[0][2] = 1.4;
+        centros[0][3] = 0.2;
+
+        centros[1][0] = 4.9;
+        centros[1][1] = 3;
+        centros[1][2] = 1.4;
+        centros[1][3] = 0.2;
+
+        centros[2][0] = 4.7;
+        centros[2][1] = 3.2;
+        centros[2][2] = 1.3;
+        centros[2][3] = 0.2;
+
+        centros[3][0] = 4.6;
+        centros[3][1] = 3.1;
+        centros[3][2] = 1.5;
+        centros[3][3] = 0.2;*/
+
+        /*centros[0][0] = 7; //Padrao de canto:
+        centros[0][1] = 0;
+        centros[0][2] = 0;
+        centros[0][3] = 0;
+
+        centros[1][0] = 1;
+        centros[1][1] = 4;
+        centros[1][2] = 1;
+        centros[1][3] = 1;
+
+        centros[2][0] = 2;
+        centros[2][1] = 2;
+        centros[2][2] = 6;
+        centros[2][3] = 2;
+
+        centros[3][0] = 3;
+        centros[3][1] = 3;
+        centros[3][2] = 3;
+        centros[3][3] = 2;*/
         
-        cout << ": " << distanciados[0][0] << " " << distanciados[1][0] << "\n";
-        cout << ": " << distanciados[0][1] << " " << distanciados[1][1] << "\n";
-        cout << ": " << distanciados[0][2] << " " << distanciados[1][2] << "\n";
-        cout << ": " << distanciados[0][3] << " " << distanciados[1][3] << "\n=====\n";
 
-    } while (compararMatrizes(centros, centrosAnteriores, ncent, atributos));// Criterio de parada: quando os centroides não se moverem mais
-    
-    
-    //cout << "M-l " << means;
-    /*
-    for (int i = 0; i < nista; i++)
-    {
-        cout << i <<" - " << means[i] << "\n";
-    }*/
-    
-    //PrintMatrix(centros, ncent, atributos);
+
+        float *indexProximidade = new float [nista];// array auxiliar que guarda a que centroide pertence alguma instancia
+        // pre operação - https://www.youtube.com/watch?v=njRYKzRKBPY
+
+        do
+        {
+            //ZerarMatrix(centrosAnteriores, ncent, atributos);
+            ClonarMatriz(centros, centrosAnteriores, ncent, atributos);
+            Distancia_Euclidiana(instancias, nista, atributos, centros, ncent, distanciados);
+            Agrupamento(distanciados, ncent, nista, indexProximidade);
+            RemapeandoCentroid(instancias, nista, atributos, centros, ncent, indexProximidade);
+            
+            cout << ": " << distanciados[0][0] << " " << distanciados[1][0] <<  " " << distanciados[2][0] <<  " " << distanciados[3][0] << "\n";
+            cout << ": " << distanciados[0][1] << " " << distanciados[1][1] <<  " " << distanciados[2][1] <<  " " << distanciados[3][1] << "\n";
+            cout << ": " << distanciados[0][2] << " " << distanciados[1][2] <<  " " << distanciados[2][2] <<  " " << distanciados[3][2] << "\n";
+            cout << ": " << distanciados[0][3] << " " << distanciados[1][3] <<  " " << distanciados[2][3] <<  " " << distanciados[3][3] << "\n";
+            cout << ": " << distanciados[0][4] << " " << distanciados[1][4] <<  " " << distanciados[2][4] <<  " " << distanciados[3][4] << "\n";
+            cout << ": " << distanciados[0][5] << " " << distanciados[1][5] <<  " " << distanciados[2][5] <<  " " << distanciados[3][5] << "\n";
+            cout << "0= " << centros[0][0] << "\n";
+            cout << "0= " << centros[0][1] << "\n";
+            cout << "1= " << centros[1][0] << "\n";
+            cout << "1= " << centros[1][1] << "\n";
+            cout << "2= " << centros[2][0] << "\n";
+            cout << "2= " << centros[2][1] << "\n==\n";
+
+        } while (compararMatrizes(centros, centrosAnteriores, ncent, atributos));// Criterio de parada: quando os centroides não se moverem mais
+
+        /*
+        cout << "\n Laura" << "\n";
+        for(int i=0;i<9;i++){
+            std::cout << "Ponto(" << instancias[i][0] << ", " << instancias[i][1] << ") está no cluster " << indexProximidade[i] << std::endl;
+        }
+        std::cout << "Ponto(" << instancias[55][0] << ", " << instancias[55][1] << ") está no cluster " << indexProximidade[55] << std::endl;
+        */
+        Saida(nista, indexProximidade);
+        
+        //cout << "M-l " << means;
+        /*
+        for (int i = 0; i < nista; i++)
+        {
+            cout << i <<" - " << means[i] << "\n";
+        }*/
+        
+        //PrintMatrix(centros, ncent, atributos);
+    }
     return 0;
 }
 
