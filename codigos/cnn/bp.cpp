@@ -6,7 +6,7 @@ class Rede {
 public:
 	int nEntradas, nSaidas, nHidden;
 	double **hidden;
-	double *saidas;
+	double *saidas; 
 	
 	Rede(int nEntradas, int nSaidas, int nHidden) {
 		this->nEntradas = nEntradas;
