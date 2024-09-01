@@ -3,6 +3,17 @@
 #include <random>
 #include <cmath>
 
+/*
+//cpu_selector sel;
+    gpu_selector sel;
+    queue qcmk(sel);
+    buffer<float, 2> instancias_buff(instancias[0], range<2>(nista, atributos));
+    qcmk.submit([&](handler& ker){accessor instancias_ac{instancias_buff, ker};}).wait();
+    host_accessor instancias_r{instancias_buff};
+
+    ker.parallel_for(range<2>(height, width), [=](item<2> idx) {});
+*/
+
 #include <fstream>
 #include <string>
 
@@ -18,69 +29,144 @@ void PrintMatrix(int **matrix, int rows, int cols) {
     }
 }
 
-bool compararMatrizes(float **matriz1, float **matriz2, int linhas, int colunas) {
-    // Verificar se as matrizes têm o mesmo número de linhas e colunas
-    if (linhas != linhas || colunas != colunas) {
-        return true;
-    }
+void ClonarMatriz(float **matriz1, float **matriz2, int rows, int cols){ // Paralelo
+    gpu_selector sel;
+    queue qcmk(sel);
+    buffer<float, 2> matriz1_buff(matriz1[0], range<2>(rows, cols));
+    buffer<float, 2> matriz2_buff(matriz2[0], range<2>(rows, cols));
 
-    // Comparar cada elemento das matrizes
-    for (int i = 0; i < linhas; ++i) {
-        for (int j = 0; j < colunas; ++j) {
-            if (matriz1[i][j] != matriz2[i][j]) {
-                return true;
-            }
-        }
-    }
-
-    // Se todas as comparações forem iguais, as matrizes são iguais
-    return false;
-}
-
-void ClonarMatriz(float **matriz1, float **matriz2, int rows, int cols){
+    qcmk.submit([&](handler& ker){
+        accessor matriz1_ac{matriz1_buff, ker};
+        accessor matriz2_ac{matriz2_buff, ker};
+        ker.parallel_for(range<2>(rows, cols), [=](item<2> idx) {
+            matriz2_ac[idx] = matriz1_ac[idx];
+        });
+    }).wait();
+    host_accessor matriz1_r{matriz1_buff};
+    host_accessor matriz2_r{matriz2_buff};
+    
+/*
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
             matriz2[i][j] = matriz1[i][j];
         }
+    }*/
+} 
+
+bool compararMatrizes(float **matriz1, float **matriz2, int linhas, int colunas) { // Paralelo
+    bool diferenca = false;
+    //bool backup = false;
+    // Verificar se as matrizes têm o mesmo número de linhas e colunas
+    if (linhas != linhas || colunas != colunas) {
+        return true;
     }
+    gpu_selector sel;
+    queue qcmk(sel);
+
+    buffer<float, 2> matriz1_buff(matriz1[0], range<2>(linhas, colunas));
+    buffer<float, 2> matriz2_buff(matriz2[0], range<2>(linhas, colunas));
+    buffer<bool, 1> diferenca_buff(&diferenca, range<1>(1));
+
+    qcmk.submit([&](handler& ker){
+        accessor matriz1_ac{matriz1_buff, ker};
+        accessor matriz2_ac{matriz2_buff, ker};
+        accessor diferenca_ac{diferenca_buff, ker};
+        ker.parallel_for(range<2>(linhas, colunas), [=](item<2> idx) {
+            int row = idx.get_id(0);
+            int col = idx.get_id(1);
+            if (matriz1_ac[idx] != matriz2_ac[idx]) {
+                diferenca_ac[0] = true;
+            }
+        });
+    }).wait();
+    host_accessor matriz1_r{matriz1_buff};
+    host_accessor matriz2_r{matriz2_buff};
+    host_accessor diferenca_r{diferenca_buff};
+
+
+    // Comparar cada elemento das matrizes
+    /*
+    for (int i = 0; i < linhas; ++i) {
+        for (int j = 0; j < colunas; ++j) {
+            if (matriz1_r[i][j] != matriz2_r[i][j]) {
+                backup = true;
+            }
+        }
+    }
+
+    cout << "----I\n";
+    cout << "diferenca: " << diferenca << "\n";
+    cout << "diferenca_r: " << diferenca_r[0] << "\n";
+    cout << "backup: "<< backup << "\n";
+    cout << "----F\n";
+    */
+
+    // Se todas as comparações forem iguais, as matrizes são iguais
+    return diferenca;
 }
 
-void ZerarMatrix(float **matrix, int rows, int cols) {
+void ZerarMatrix(float **matrix, int rows, int cols) {/*
+    gpu_selector sel;
+    queue qcmk(sel);
+    buffer<float, 2> matrix_buff(matrix[0], range<2>(rows, cols));
+
+    qcmk.submit([&](handler& ker){
+        accessor matrix_ac{matrix_buff, ker};
+        ker.parallel_for(range<2>(rows, cols), [=](item<2> idx) {
+            //int i = idx.get_id(0);
+            //int j = idx.get_id(1);
+            matrix_ac[idx] = 0.0;
+        });
+    }).wait();
+    host_accessor matrix_r{matrix_buff};*/
+
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
             matrix[i][j] = 0.0;
         }
     }
-}
+} // Paralelizar
 
-
-void CentrMK( int ncent, int atributos, int nista, float **centros, float **instancias){
+void CentrMK( int ncent, int atributos, int nista, float **centros, float **instancias){ // Paralelo
     //cpu_selector sel;
-    //gpu_selector sel;
-    //queue qcmk(sel);
+    gpu_selector sel;
+    queue qcmk(sel);
     int random;
+    buffer<float, 2> instancias_buff(instancias[0], range<2>(nista, atributos));
+    buffer<float, 2> centros_buff(centros[0], range<2>(ncent, atributos));
+    
 
+    srand(0);
     for (int i = 0; i < ncent; i++)
     {
-        /*
+        random = rand() % nista;
+
         qcmk.submit([&](handler& ker){
-            ker.parallel_for(range<1>(atributos), [=](auto j) {
-                centros[i][j] = rand()%100;
+            accessor instancias_ac{instancias_buff, ker};
+            accessor centros_ac{centros_buff, ker};
+
+            ker.parallel_for(range<1>(atributos), [=](item<1> j) {
+                int linha = j.get_id(0);
+                centros_ac[i][j] = instancias_ac[random][j];
             });
         });
-        qcmk.wait();*/
-        random = rand()%nista -1;
+        qcmk.wait();
+        host_accessor instancias_r{instancias_buff};
+        host_accessor centros_r{centros_buff};
+
+        /*
 
         for (int j = 0; j < atributos; j++)
         {
-            centros[i][j] = instancias[random][j];
+            //centros[i][j] = instancias_r[random][j];
+            cout << random << " Ins: " << instancias_r[random][j] << "\n";
         }
-        
+        cout << "\n";*/
     }
     //return centros;
 }
 
-bool AtrEnt(int nista, int atributos, float **instancias){
+bool AtrEnt(int nista, int atributos, float **instancias){ // LINEAR
     std::ifstream arquivo("./IRIS.csv"); // Abra o arquivo para leitura
     std::string valorString = "";
     int contAtrb = 0;
@@ -94,8 +180,14 @@ bool AtrEnt(int nista, int atributos, float **instancias){
 
     std::string linha;
     std::getline(arquivo, linha);
-    while (std::getline(arquivo, linha)) { // Leia linha por linha
 
+    //cpu_selector sel;
+    gpu_selector sel;
+    queue qcmk(sel);
+    buffer<float, 2> instancias_buff(instancias[0], range<2>(nista, atributos));
+    host_accessor instancias_r{instancias_buff};
+
+    while (std::getline(arquivo, linha)) { // Leia linha por linha
         j = 0;
         for (int i = 0; i < 4; i++)
         {
@@ -103,21 +195,15 @@ bool AtrEnt(int nista, int atributos, float **instancias){
             {
                 valorString += linha[j];
                 j++;
+                //cout << " " << valorString;
             }
             j++;
-            instancias[indexInsta][i] = std::stof(valorString);
+            instancias_r[indexInsta][i] = std::stof(valorString);
             valorString = "";
         }indexInsta++;
+        //cout << "\n";
     }
-/*
-    for (int  i = 0; i < nista; i++)
-    {
-        for (int j = 0; j < atributos; j++)
-        {
-            cout << "instancia: " << i << "-" << j << " = " << instancias[i][j] << "\n";
-        }
-        
-    }*/
+    
     
 
     arquivo.close();
@@ -125,9 +211,13 @@ bool AtrEnt(int nista, int atributos, float **instancias){
 }
 
 void Saida(int nista, float* indexProximidade){
-    string nomeArquivo = "./IRIS_out.txt";
+    string nomeArquivo = "./IRIS_outParalelo.txt";
     ofstream arquivo(nomeArquivo);
     string texto = "";
+    
+    buffer<float, 1> indexProximidade_buff(indexProximidade, range<1>(nista));
+    host_accessor indexProximidade_r{indexProximidade_buff};
+    
     
     // Verifica se o arquivo foi aberto com sucesso
     if (!arquivo) {
@@ -135,8 +225,8 @@ void Saida(int nista, float* indexProximidade){
     }else{
         for (int i = 0; i < nista; i++)// 
         {
-            texto += " [" + to_string(i) + "]= " + to_string(static_cast<int>(indexProximidade[i])) + "\n";
-            //cout << " " + to_string(i) + "_" + to_string(indexProximidade[i]) + "\n";
+            texto += to_string(static_cast<int>(indexProximidade_r[i])) + "\n";
+            //cout << " " + to_string(i) + "_" + to_string(indexProximidade_r[i]) + "\n";
         }
         
         // Escreve o texto no arquivo
@@ -185,59 +275,82 @@ float elev(float a, float b){
 // ###    --- CODIGO ---    v #########################################################################################################
 
 
-void Distancia_Euclidiana(float** instancias, int nista, int atributos, float** centros, int ncent, float** distanciados){ // Manhattan
-    //gpu_selector selD;
-    //queue q(selD);
-
-    //float *aux = malloc_shared<float>(1, q);
-    //aux[0] = 1;
+void Distancia_Euclidiana(float** instancias, int nista, int atributos, float** centros, int ncent, float** distanciados){ // Paralelo.single_task
     float soma;
-    //float *somaV = malloc_shared<float>(atributos, q);
 
-    for (int i = 0; i < ncent; i++)
-    {
-        for (int j = 0; j < nista; j++)
-        {
-            soma = 0;
-            for (int k = 0; k < atributos; k++)
+    gpu_selector sel;
+    queue qcmk(sel);
+    buffer<float, 2> instancias_buff(instancias[0], range<2>(nista, atributos));
+    buffer<float, 2> centros_buff(centros[0], range<2>(ncent, atributos));
+    buffer<float, 2> distanciados_buff(distanciados[0], range<2>(ncent, nista));
+    buffer<float, 1> soma_buff(&soma, range<1>(1));
+
+    qcmk.submit([&](handler& ker){
+        accessor instancias_ac{instancias_buff, ker};
+        accessor centros_ac{centros_buff, ker};
+        accessor distanciados_ac{distanciados_buff, ker};
+        accessor soma_ac{soma_buff, ker};
+
+        ker.single_task([=]() {
+            for (int i = 0; i < ncent; i++)
             {
-                soma = soma + elev(instancias[j][k] - centros[i][k], 2);
+                for (int j = 0; j < nista; j++)
+                {
+                    soma_ac[0] = 0;
+                    for (int k = 0; k < atributos; k++) {
+                        soma_ac[0] = soma_ac[0] + ((instancias_ac[j][k] - centros_ac[i][k]) * (instancias_ac[j][k] - centros_ac[i][k]));
+                    }
+                    distanciados_ac[i][j] = sqrt(soma_ac[0]);
+                }
             }
-            distanciados[i][j] = sqrt(soma);
-        }
-        
-    }
-
-    cout << ": " << distanciados[0][0] << " " << distanciados[1][0] <<  " " << distanciados[2][0] <<  " " << distanciados[3][0] << "\n";
-    cout << ": " << distanciados[0][1] << " " << distanciados[1][1] <<  " " << distanciados[2][1] <<  " " << distanciados[3][1] << "\n";
-    cout << ": " << distanciados[0][2] << " " << distanciados[1][2] <<  " " << distanciados[2][2] <<  " " << distanciados[3][2] << "\n";
-    cout << ": " << distanciados[0][3] << " " << distanciados[1][3] <<  " " << distanciados[2][3] <<  " " << distanciados[3][3] << "\n";
-    cout << ": " << distanciados[0][4] << " " << distanciados[1][4] <<  " " << distanciados[2][4] <<  " " << distanciados[3][4] << "\n";
-    cout << ": " << distanciados[0][5] << " " << distanciados[1][5] <<  " " << distanciados[2][5] <<  " " << distanciados[3][5] << "\n";
+        });
+    }).wait();
+    
+    host_accessor instancias_r{instancias_buff};
+    host_accessor centros_r{centros_buff};
+    host_accessor distanciados_r{distanciados_buff};
     
 /*
     for (int i = 0; i < ncent; i++)
     {
         for (int j = 0; j < nista; j++)
         {
-            soma = 0;
+            //soma = 0;
             for (int k = 0; k < atributos; k++)
             {
-                soma = soma + elev(instancias[j][k] - centros[i][k], 2);
+                //soma = soma + ((instancias_r[j][k] - centros_r[i][k]) * (instancias_r[j][k] - centros_r[i][k]));
             }
-            distanciados[i][j] = sqrt(soma);
+            //distanciados_r[i][j] = sqrt(soma);
+            cout << ":: " << distanciados_r[i][j] << "\n";
         }
-        
     }*/
-    
 }
 
-void Agrupamento(float **distanciados, int ncent, int nista, float *indexProximidade){// identifica as instancias com os centroides
-    float menorAux;
-    //int indexProximidade;
+void Agrupamento(float **distanciados, int ncent, int nista, float *indexProximidade){ // LINEAR
+    float menorAux; // identifica as instancias com os centroides
+    gpu_selector sel;
+    queue qcmk(sel);
+    
+    buffer<float, 2> distanciados_buff(distanciados[0], range<2>(ncent, nista));
+    buffer<float, 1> indexProximidade_buff(indexProximidade, range<1>(nista));
+    
+    host_accessor distanciados_r{distanciados_buff};
+    host_accessor indexProximidade_r{indexProximidade_buff};
 
     for (int j = 0; j < nista; j++){
-        menorAux = 2147483647.0;// INT_MAX
+        menorAux = distanciados_r[0][j]; //2147483647.0;// INT_MAX
+        indexProximidade_r[j] = 0; // Padrao
+        for (int i = 0; i < ncent; ++i) {
+            if (distanciados_r[i][j] < menorAux) {
+                menorAux = distanciados_r[i][j];
+                indexProximidade_r[j] = i;
+            }
+        }
+    }
+
+    /*
+        menorAux = distanciados[0][j]; //2147483647.0;// INT_MAX
+        indexProximidade[j] = 0; // Padrao
         for (int i = 0; i < ncent; ++i) {
             if (distanciados[i][j] < menorAux) {
                 menorAux = distanciados[i][j];
@@ -245,67 +358,89 @@ void Agrupamento(float **distanciados, int ncent, int nista, float *indexProximi
             }
         }
 
-    }
+    for (int i = 0; i < nista; i++)
+    {
+        cout << "idxP: " << indexProximidade[i] << "\n";
+    }*/
+    
 }
 
-void RemapeandoCentroid(float** instancias, int nista, int atributos, float** centros, int ncent, float* indexProximidade){
+void RemapeandoCentroid(float** instancias, int nista, int atributos, float** centros, int ncent, float* indexProximidade){ // LINEAR
+    //gpu_selector sel;
+    //queue qcmk1(sel);
+    //queue qcmk2(sel);
+
     int auxCont;
     float **auxSoma = new float*[nista];
     for (int i = 0; i < nista; ++i) {
         auxSoma[i] = new float[atributos];
     }
-/*
-    cout << "0= " << centros[0][0] << "\n";
-    cout << "0= " << centros[0][1] << "\n";
-    cout << "1= " << centros[1][0] << "\n";
-    cout << "1= " << centros[1][1] << "\n";
-    cout << "2= " << centros[2][0] << "\n";
-    cout << "2= " << centros[2][1] << "\n==\n";*/
-
+    
     //float auxSoma[nista][atributos] = {};
     ZerarMatrix(auxSoma, nista, atributos);
 
-    for (int i = 0; i < ncent; i++)// média dos atributos
+    buffer<float, 2> instancias_buff(instancias[0], range<2>(nista, atributos));
+    buffer<float, 2> centros_buff(centros[0], range<2>(ncent, atributos));
+    buffer<float, 1> indexProximidade_buff(indexProximidade, range<1>(nista));
+    host_accessor indexProximidade_r{indexProximidade_buff};
+    //buffer<float, 2> auxSoma_buff(auxSoma[0], range<2>(nista, atributos));
+    buffer<int, 1> auxCont_buff(&auxCont, range<1>(1));
+    
+    
+/*
+    for (int i = 0; i < ncent; i++)// média dos atributos -- Linear
     {
         auxCont = 0;
-        for (int j = 0; j < nista; j++)
+        for (int j = 0; j < nista; j++) // Linear
         {
-            cout << j << " indexProximidade " << indexProximidade[j] << "  i " << i << "\n";
-            if (indexProximidade[j] == i)
+            if (indexProximidade_r[j] == i)
             {
-                for (int k = 0; k < atributos; k++)
-                {
-                    cout << " " << (auxSoma[i][k] + instancias[j][k]) << " = " << auxSoma[i][k] << " + " << instancias[j][k] << "\n";
-                    auxSoma[i][k] = auxSoma[i][k] + instancias[j][k];
-                }
+                //qcmSomar(auxSoma, instancias, nista, atributos, i, j);
                 auxCont++;
             }
         }
         if (auxCont != 0)
         {
-            for (int l = 0; l < atributos; l++)// Atualiza centroides
-            {
-                cout << " " << (auxSoma[i][l] / auxCont) << " = " << auxSoma[i][l] << " / " << auxCont << "\n";
-                centros[i][l] = auxSoma[i][l] / auxCont;
-            }
-        }
-        
-    }
-    /*
-    for (int i = 0; i < ncent; i++) // Atualiza centroides
-    {
-        for (int j = 0; j < atributos; j++)
-        {
-            centros[i][j] = auxSoma[i][j];
+            //qcmDiv(centros, ncent, atributos, auxSoma, nista, auxCont, i);
         }
     }*/
-   /*
-    cout << "0= " << centros[0][0] << "\n";
-    cout << "0= " << centros[0][1] << "\n";
-    cout << "1= " << centros[1][0] << "\n";
-    cout << "1= " << centros[1][1] << "\n";
-    cout << "2= " << centros[2][0] << "\n";
-    cout << "2= " << centros[2][1] << "\n==\n";*/
+
+    host_accessor instancias_r{instancias_buff};
+    host_accessor centros_r{centros_buff};
+    //host_accessor auxSoma_r{auxSoma_buff};
+    host_accessor auxCont_r{auxCont_buff};
+    
+    
+    
+
+    for (int i = 0; i < ncent; i++)// média dos atributos -- Linear
+    {
+        auxCont_r[0] = 0;
+        for (int j = 0; j < nista; j++) // Linear
+        {
+            //cout << j << " indexProximidade_r " << indexProximidade_r[j] << "  i " << i << "\n";
+            
+            if (indexProximidade_r[j] == i)
+            {
+                for (int k = 0; k < atributos; k++) // || PArale_1
+                {
+                    //cout << " " << (auxSoma[i][k] + instancias_r[j][k]) << " = " << auxSoma[i][k] << " + " << instancias_r[j][k] << "\n";
+                    auxSoma[i][k] = auxSoma[i][k] + instancias_r[j][k];
+                }
+                auxCont_r[0]++;
+            }
+        }
+        //cout << "auxCont_r[0]: " << auxCont_r[0] << "\n";
+        if (auxCont_r[0] != 0)
+        {
+            for (int l = 0; l < atributos; l++)// Atualiza centroides || PArale_2
+            {
+                //cout << " " << (auxSoma[i][l] / auxCont_r[0]) << " = " << auxSoma[i][l] << " / " << auxCont_r[0] << "\n";
+                centros_r[i][l] = auxSoma[i][l] / auxCont_r[0];
+            }
+        }
+    }
+    //delete[] auxSoma;
     
 }
 
@@ -322,7 +457,7 @@ int main(){
 
     atributos = 4;// Para teste
     nista = 150;
-    ncent = 4;
+    ncent = 3;
 
     //int instancias[nista][atributos];
     float **instancias = new float*[nista]; // matriz de instancias
@@ -342,8 +477,6 @@ int main(){
         distanciados[i] = new float[nista];
     }
 
-
-
     //int centros[ncent][atributos];
     float **centrosAnteriores = new float*[ncent];// matriz de centroides anteriores
     for (int i = 0; i < ncent; ++i) {
@@ -357,119 +490,23 @@ int main(){
         CentrMK(ncent, atributos, nista, centros, instancias); // cria centros na posição de uma instacia aleatoria
         // Usa volores de entrada para as instancias
 
-        /*
-        instancias[0][0] = 1;// Para teste
-        instancias[0][1] = 2;
-
-        instancias[1][0] = 1.5;
-        instancias[1][1] = 1.8;
-
-        instancias[2][0] = 5;
-        instancias[2][1] = 8;
-
-        instancias[3][0] = 8;
-        instancias[3][1] = 8;
-
-        instancias[4][0] = 1;
-        instancias[4][1] = 0.6;
-
-        instancias[5][0] = 9;
-        instancias[5][1] = 11;
-
-        instancias[6][0] = 8;
-        instancias[6][1] = 2;
-
-        instancias[7][0] = 10;
-        instancias[7][1] = 2;
-
-        instancias[8][0] = 9;
-        instancias[8][1] = 3;*/
-
-        /*centros[0][0] = 5.1; Padrao Laura
-        centros[0][1] = 3.5;
-        centros[0][2] = 1.4;
-        centros[0][3] = 0.2;
-
-        centros[1][0] = 4.9;
-        centros[1][1] = 3;
-        centros[1][2] = 1.4;
-        centros[1][3] = 0.2;
-
-        centros[2][0] = 4.7;
-        centros[2][1] = 3.2;
-        centros[2][2] = 1.3;
-        centros[2][3] = 0.2;
-
-        centros[3][0] = 4.6;
-        centros[3][1] = 3.1;
-        centros[3][2] = 1.5;
-        centros[3][3] = 0.2;*/
-
-        /*centros[0][0] = 7; //Padrao de canto:
-        centros[0][1] = 0;
-        centros[0][2] = 0;
-        centros[0][3] = 0;
-
-        centros[1][0] = 1;
-        centros[1][1] = 4;
-        centros[1][2] = 1;
-        centros[1][3] = 1;
-
-        centros[2][0] = 2;
-        centros[2][1] = 2;
-        centros[2][2] = 6;
-        centros[2][3] = 2;
-
-        centros[3][0] = 3;
-        centros[3][1] = 3;
-        centros[3][2] = 3;
-        centros[3][3] = 2;*/
-        
-
-
         float *indexProximidade = new float [nista];// array auxiliar que guarda a que centroide pertence alguma instancia
         // pre operação - https://www.youtube.com/watch?v=njRYKzRKBPY
-
+//int tt = 0;
         do
         {
             //ZerarMatrix(centrosAnteriores, ncent, atributos);
+            //cout << "\nFALGf1 - "<< tt << "\n";
             ClonarMatriz(centros, centrosAnteriores, ncent, atributos);
             Distancia_Euclidiana(instancias, nista, atributos, centros, ncent, distanciados);
             Agrupamento(distanciados, ncent, nista, indexProximidade);
-            RemapeandoCentroid(instancias, nista, atributos, centros, ncent, indexProximidade);
             
-            cout << ": " << distanciados[0][0] << " " << distanciados[1][0] <<  " " << distanciados[2][0] <<  " " << distanciados[3][0] << "\n";
-            cout << ": " << distanciados[0][1] << " " << distanciados[1][1] <<  " " << distanciados[2][1] <<  " " << distanciados[3][1] << "\n";
-            cout << ": " << distanciados[0][2] << " " << distanciados[1][2] <<  " " << distanciados[2][2] <<  " " << distanciados[3][2] << "\n";
-            cout << ": " << distanciados[0][3] << " " << distanciados[1][3] <<  " " << distanciados[2][3] <<  " " << distanciados[3][3] << "\n";
-            cout << ": " << distanciados[0][4] << " " << distanciados[1][4] <<  " " << distanciados[2][4] <<  " " << distanciados[3][4] << "\n";
-            cout << ": " << distanciados[0][5] << " " << distanciados[1][5] <<  " " << distanciados[2][5] <<  " " << distanciados[3][5] << "\n";
-            cout << "0= " << centros[0][0] << "\n";
-            cout << "0= " << centros[0][1] << "\n";
-            cout << "1= " << centros[1][0] << "\n";
-            cout << "1= " << centros[1][1] << "\n";
-            cout << "2= " << centros[2][0] << "\n";
-            cout << "2= " << centros[2][1] << "\n==\n";
-
+            RemapeandoCentroid(instancias, nista, atributos, centros, ncent, indexProximidade);
+            //cout << "FALGf2 - "<< tt << "\n";
+            //tt++;
         } while (compararMatrizes(centros, centrosAnteriores, ncent, atributos));// Criterio de parada: quando os centroides não se moverem mais
-
-        /*
-        cout << "\n Laura" << "\n";
-        for(int i=0;i<9;i++){
-            std::cout << "Ponto(" << instancias[i][0] << ", " << instancias[i][1] << ") está no cluster " << indexProximidade[i] << std::endl;
-        }
-        std::cout << "Ponto(" << instancias[55][0] << ", " << instancias[55][1] << ") está no cluster " << indexProximidade[55] << std::endl;
-        */
         Saida(nista, indexProximidade);
-        
-        //cout << "M-l " << means;
-        /*
-        for (int i = 0; i < nista; i++)
-        {
-            cout << i <<" - " << means[i] << "\n";
-        }*/
-        
-        //PrintMatrix(centros, ncent, atributos);
+
     }
     return 0;
 }
