@@ -224,9 +224,12 @@ void train_neural_net(void)
 {
     int i;
     int it=0;
-
+	int e;
+	printf("Epocas: ");
+	scanf("%d",&e);
+	getchar();
     // Gradient Descent
-    for(it=0;it<20000;it++)
+    for(it=0;it<e;it++)
     {
         for(i=0;i<num_training_ex;i++)
         {
@@ -372,7 +375,7 @@ void back_prop(int p)
 void test_nn(void) 
 {
     int i;
-    while(1)
+    while(i!=-1)
     {
         printf("Enter input to test:\n");
 
