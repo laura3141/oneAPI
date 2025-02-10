@@ -1,0 +1,2 @@
+/proc/sys/dev/i915/perf_stream_paranoid'
+sudo sysctl -w kernel.yama.ptrace_scope=0
